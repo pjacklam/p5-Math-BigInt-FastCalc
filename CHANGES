@@ -1,3 +1,7 @@
+2018-xx-xx v0.5007 pjacklam
+
+ * Increment version number.
+
 2017-01-11 v0.5006 pjacklam
 
  * Fix syntax for required version of Math::BigInt::Lib.
