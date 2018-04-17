@@ -65,4 +65,6 @@
 #!end included /usr/share/perl5/5.26/ExtUtils/MANIFEST.SKIP
 
 # Avoid distribution-specific stuff.
-/Math-BigInt-FastCalc-[0-9]
+^Math-BigInt-FastCalc-[0-9]
+^FastCalc\.[co]$
+^FastCalc\.bs$
