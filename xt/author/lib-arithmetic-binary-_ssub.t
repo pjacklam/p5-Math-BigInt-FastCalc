@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 22023;
+use Test::More tests => 1801;
 
 ###############################################################################
 # Read and load configuration file and backend library.
@@ -23,7 +23,7 @@ die "No library defined in file '$config_file'"
 die "Invalid library name '$LIB' in file '$config_file'"
   unless $LIB =~ /^[A-Za-z]\w*(::\w+)*\z/;
 
-# Read the reference type(s) the library uses.
+# Read the reference type the library uses.
 
 our $REF = $config->{_}->{ref};
 
@@ -45,77 +45,74 @@ Scalar::Util -> import('refaddr') if $scalar_util_ok;
 diag "Skipping some tests since Scalar::Util is not installed."
   unless $scalar_util_ok;
 
-can_ok($LIB, '_log_int');
+can_ok($LIB, '_ssub');
 
 my @data;
 
-# Small numbers.
+# Simple numbers.
 
-for (my $x = 0; $x <= 1000 ; ++ $x) {
-    for (my $y = 0; $y <= 10 ; ++ $y) {
+my @val = (0 .. 5);
+for my $exp (1 .. 9) {
+    push @val, 0 + "1e$exp";
+}
 
-        if ($x == 0 || $y <= 1) {
-            push @data, [ $x, $y, undef, undef ];
-            next;
+for my $xa (@val) {
+    for my $xs ('+', '-') {
+        for my $ya (@val) {
+            for my $ys ('+', '-') {
+                my $x = $xs . $xa;
+                my $y = $ys . $ya;
+                my $z = $x - $y;
+                my $zs = $z < 0 ? '-' : '+';
+                my $za = abs($z);
+                push @data, [ $xa, $xs, $ya, $ys, $za, $zs ];
+            }
         }
-
-        my $z = int(log($x) / log($y));
-        $z++ while $y ** $z < $x;
-        $z-- while $y ** $z > $x;
-        my $status = $y ** $z == $x ? 1 : 0;
-        push @data, [ $x, $y, $z, $status ];
     }
 }
 
 # List context.
 
 for (my $i = 0 ; $i <= $#data ; ++ $i) {
-    my ($in0, $in1, $out0, $out1) = @{ $data[$i] };
+    my ($in0, $in1, $in2, $in3, $out0, $out1) = @{ $data[$i] };
 
     my ($x, $y, @got);
 
     my $test = qq|\$x = $LIB->_new("$in0"); |
-             . qq|\$y = $LIB->_new("$in1"); |
-             . qq|\@got = $LIB->_log_int(\$x, \$y);|;
+             . qq|\$y = $LIB->_new("$in2"); |
+             . qq|\@got = $LIB->_ssub(\$x, "$in1", \$y, "$in3");|;
 
     diag("\n$test\n\n") if $ENV{AUTHOR_DEBUGGING};
 
     eval $test;
     is($@, "", "'$test' gives emtpy \$\@");
 
-    subtest "_log_int() in list context: $test", sub {
-
-        unless (defined $out0) {
-            plan tests => 1;
-
-            is($got[0], $out0,
-               "'$test' output arg has the right value");
-            return;
-        }
-
+    subtest "_ssub() in list context: $test", sub {
         plan tests => 11;
-
-        # Number of input arguments.
 
         cmp_ok(scalar @got, '==', 2,
                "'$test' gives two output args");
-
-        # First output argument.
 
         is(ref($got[0]), $REF,
            "'$test' first output arg is a $REF");
 
         is($LIB->_check($got[0]), 0,
-           "'$test' first output is valid");
+           "'$test' first output arg is valid");
 
         is($LIB->_str($got[0]), $out0,
-           "'$test' output arg has the right value");
+           "'$test' first output arg has the right value");
+
+        is(ref($got[1]), '',
+           "'$test' second output arg is a scalar");
+
+        is($got[1], $out1,
+           "'$test' second output arg has the right value");
 
       SKIP: {
             skip "Scalar::Util not available", 1 unless $scalar_util_ok;
 
             isnt(refaddr($got[0]), refaddr($y),
-                 "'$test' first output arg is not the second input arg")
+                 "'$test' output arg is not the second input arg");
         }
 
         is(ref($x), $REF,
@@ -127,15 +124,7 @@ for (my $i = 0 ; $i <= $#data ; ++ $i) {
         is(ref($y), $REF,
            "'$test' second input arg is still a $REF");
 
-        is($LIB->_str($y), $in1,
+        is($LIB->_str($y), $in2,
            "'$test' second input arg is unmodified");
-
-        # Second output argument.
-
-        is(ref($got[1]), "",
-           "'$test' second output arg is a scalar");
-
-        is($got[1], $out1,
-           "'$test' second output arg has the right value");
     };
 }
