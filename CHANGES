@@ -1,3 +1,9 @@
+0.5017 2024-01-04
+
+ * Update required version of Math-BigInt.
+
+ * Sync test files with Math-BigInt.
+
 0.5016 2023-12-27
 
  * Sync test files with Math-BigInt.
